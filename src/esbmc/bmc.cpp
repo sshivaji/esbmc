@@ -353,29 +353,6 @@ void bmct::report_multi_property_trace(
       generate_html_report(std::to_string(ce_counter), ns, goto_trace, opt_map);
 
     if (options.get_bool_option("generate-json-report")) {
-      // Create a simple coverage summary string that will be included in the report
-      std::ostringstream coverage_summary;
-      coverage_summary << "{\"condition_coverage\": {"
-        << "\"reached_conditions\": " << coverage_reached_conditions << ","
-        << "\"short_circuited_conditions\": " << coverage_short_circuits << ","
-        << "\"total_conditions\": " << (coverage_reached_conditions + coverage_short_circuits) << ","
-        << "\"satisfied_conditions\": " << coverage_sat_conditions << ","
-        << "\"unsatisfied_conditions\": " << coverage_unsat_conditions << ","
-        << "\"coverage_percentage\": " << coverage_percentage << ","
-        << "\"short_circuited_list\": [";
-      
-      // Add short-circuited list
-      for(size_t i = 0; i < coverage_short_circuit_list.size(); i++) {
-        coverage_summary << "\"" << coverage_short_circuit_list[i] << "\"";
-        if(i < coverage_short_circuit_list.size() - 1)
-          coverage_summary << ",";
-      }
-      coverage_summary << "]}}";
-
-      // Write to a temp file that will be read by report generator
-      std::ofstream coverage_file("coverage_data.json");
-      coverage_file << coverage_summary.str();
-      coverage_file.close();
       generate_json_report(std::to_string(ce_counter), ns, goto_trace);
     }
 
@@ -1240,6 +1217,31 @@ smt_convt::resultt bmct::multi_property_check(
         "Condition Coverage: {}%", sat_instance * 100.0 / total_instance);
     else
       log_result("Condition Coverage: 0%");
+
+    if(options.get_bool_option("generate-json-report")) {
+      std::ofstream coverage_out("condition_coverage.json");
+      if(coverage_out.is_open()) {
+        coverage_out << "{\"condition_coverage\": {"
+          << "\"reached_conditions\": " << reached_instance << ","
+          << "\"short_circuited_conditions\": " << short_circuit_instance << ","
+          << "\"total_conditions\": " << (reached_instance + short_circuit_instance) << ","
+          << "\"satisfied_conditions\": " << sat_instance << ","
+          << "\"unsatisfied_conditions\": " << unsat_instance << ","
+          << "\"coverage_percentage\": " << (total_instance != 0 ? (sat_instance * 100.0 / total_instance) : 0.0) << ","
+          << "\"short_circuited_list\": [";
+        
+        // Add short circuit list
+        size_t i = 0;
+        for(const auto &claim_pair : total_cond_assert_cpy) {
+          coverage_out << "\"" << claim_pair.first + " at " + claim_pair.second << "\"";
+          if(i < total_cond_assert_cpy.size() - 1)
+            coverage_out << ",";
+          i++;
+        }
+        coverage_out << "]}}";
+        coverage_out.close();
+      }
+    }
 
     // Store coverage info
     coverage_reached_conditions = reached_instance;
