@@ -93,6 +93,14 @@ protected:
   void generate_smt_from_equation(
     smt_convt &smt_conv,
     symex_target_equationt &eq) const;
+
+  private:
+    size_t coverage_reached_conditions{0};
+    size_t coverage_short_circuits{0};
+    size_t coverage_sat_conditions{0};
+    size_t coverage_unsat_conditions{0};
+    double coverage_percentage{0.0};
+    std::vector<std::string> coverage_short_circuit_list;
 };
 
 #endif

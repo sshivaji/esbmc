@@ -352,8 +352,32 @@ void bmct::report_multi_property_trace(
     if (options.get_bool_option("generate-html-report"))
       generate_html_report(std::to_string(ce_counter), ns, goto_trace, opt_map);
 
-    if (options.get_bool_option("generate-json-report"))
+    if (options.get_bool_option("generate-json-report")) {
+      // Create a simple coverage summary string that will be included in the report
+      std::ostringstream coverage_summary;
+      coverage_summary << "{\"condition_coverage\": {"
+        << "\"reached_conditions\": " << coverage_reached_conditions << ","
+        << "\"short_circuited_conditions\": " << coverage_short_circuits << ","
+        << "\"total_conditions\": " << (coverage_reached_conditions + coverage_short_circuits) << ","
+        << "\"satisfied_conditions\": " << coverage_sat_conditions << ","
+        << "\"unsatisfied_conditions\": " << coverage_unsat_conditions << ","
+        << "\"coverage_percentage\": " << coverage_percentage << ","
+        << "\"short_circuited_list\": [";
+      
+      // Add short-circuited list
+      for(size_t i = 0; i < coverage_short_circuit_list.size(); i++) {
+        coverage_summary << "\"" << coverage_short_circuit_list[i] << "\"";
+        if(i < coverage_short_circuit_list.size() - 1)
+          coverage_summary << ",";
+      }
+      coverage_summary << "]}}";
+
+      // Write to a temp file that will be read by report generator
+      std::ofstream coverage_file("coverage_data.json");
+      coverage_file << coverage_summary.str();
+      coverage_file.close();
       generate_json_report(std::to_string(ce_counter), ns, goto_trace);
+    }
 
     std::ostringstream oss;
     log_fail("\n[Counterexample]\n");
@@ -1216,6 +1240,19 @@ smt_convt::resultt bmct::multi_property_check(
         "Condition Coverage: {}%", sat_instance * 100.0 / total_instance);
     else
       log_result("Condition Coverage: 0%");
+
+    // Store coverage info
+    coverage_reached_conditions = reached_instance;
+    coverage_short_circuits = short_circuit_instance;
+    coverage_sat_conditions = sat_instance;
+    coverage_unsat_conditions = unsat_instance;
+
+    // Store short circuit list
+    coverage_short_circuit_list.clear();
+    for(const auto &claim_pair : total_cond_assert_cpy) {
+      coverage_short_circuit_list.push_back(
+        claim_pair.first + " at " + claim_pair.second);
+    }
   }
 
   else if (is_branch_cov)
@@ -1244,6 +1281,7 @@ smt_convt::resultt bmct::multi_property_check(
       log_result("Branch Coverage: {}%", tracked_instance * 100.0 / total);
     else
       log_result("Branch Coverage: 0%");
+
   }
 
   else if (is_branch_func_cov)
