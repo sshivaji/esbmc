@@ -1244,6 +1244,29 @@ smt_convt::resultt bmct::multi_property_check(
       log_result("Branch Coverage: {}%", tracked_instance * 100.0 / total);
     else
       log_result("Branch Coverage: 0%");
+
+    if(options.get_bool_option("generate-json-report")) {
+      std::ofstream coverage_out("branch_coverage.json");
+      if(coverage_out.is_open()) {
+        coverage_out << "{\n"
+          << "  \"branch_coverage\": {\n"
+          << "    \"total_branches\": " << total << ",\n"
+          << "    \"reached_branches\": " << tracked_instance << ",\n"
+          << "    \"coverage_percentage\": " << (total != 0 ? (tracked_instance * 100.0 / total) : 0) << ",\n"
+          << "    \"reached_branches_list\": [";
+
+        // Add reached branches list
+        size_t i = 0;
+        for(const auto &claim : reached_claims) {
+          if(i++ > 0) coverage_out << ",";
+          coverage_out << "\n      \"" << claim << "\"";
+        }
+        
+        coverage_out << "\n    ]\n  }\n}";
+        coverage_out.close();
+      }
+    }  
+
   }
 
   else if (is_branch_func_cov)
