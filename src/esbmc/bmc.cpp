@@ -1216,6 +1216,31 @@ smt_convt::resultt bmct::multi_property_check(
         "Condition Coverage: {}%", sat_instance * 100.0 / total_instance);
     else
       log_result("Condition Coverage: 0%");
+
+    if(options.get_bool_option("generate-json-report")) {
+      std::ofstream coverage_out("coverage.json");
+      if(coverage_out.is_open()) {
+        coverage_out << "{\n"
+          << "  \"condition_coverage\": {\n"
+          << "    \"reached_conditions\": " << reached_instance << ",\n"
+          << "    \"short_circuited_conditions\": " << short_circuit_instance << ",\n"
+          << "    \"total_conditions\": " << (reached_instance + short_circuit_instance) << ",\n"
+          << "    \"satisfied_conditions\": " << sat_instance << ",\n"
+          << "    \"unsatisfied_conditions\": " << unsat_instance << ",\n"
+          << "    \"coverage_percentage\": " << (total_instance != 0 ? (sat_instance * 100.0 / total_instance) : 0) << ",\n"
+          << "    \"short_circuited_conditions_list\": [\n";
+        
+        // Add short-circuited list
+        size_t i = 0;
+        for(const auto &claim_pair : total_cond_assert_cpy) {
+          if(i++ > 0) coverage_out << ",\n";
+          coverage_out << "      \"" << claim_pair.first << " at " << claim_pair.second << "\"";
+        }
+        
+        coverage_out << "\n    ]\n  }\n}";
+        coverage_out.close();
+      }
+    }
   }
 
   else if (is_branch_cov)
@@ -1246,7 +1271,7 @@ smt_convt::resultt bmct::multi_property_check(
       log_result("Branch Coverage: 0%");
 
     if(options.get_bool_option("generate-json-report")) {
-      std::ofstream coverage_out("branch_coverage.json");
+      std::ofstream coverage_out("coverage.json");
       if(coverage_out.is_open()) {
         coverage_out << "{\n"
           << "  \"branch_coverage\": {\n"
