@@ -1242,19 +1242,6 @@ smt_convt::resultt bmct::multi_property_check(
         coverage_out.close();
       }
     }
-
-    // Store coverage info
-    coverage_reached_conditions = reached_instance;
-    coverage_short_circuits = short_circuit_instance;
-    coverage_sat_conditions = sat_instance;
-    coverage_unsat_conditions = unsat_instance;
-
-    // Store short circuit list
-    coverage_short_circuit_list.clear();
-    for(const auto &claim_pair : total_cond_assert_cpy) {
-      coverage_short_circuit_list.push_back(
-        claim_pair.first + " at " + claim_pair.second);
-    }
   }
 
   else if (is_branch_cov)
