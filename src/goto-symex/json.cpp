@@ -246,6 +246,7 @@ json get_assignment_json(
 
 void add_coverage_to_json(const goto_tracet &goto_trace, const namespacet &ns)
 {
+  // Start with a new test entry 
   json test_entry;
   test_entry["steps"] = json::array();
   test_entry["status"] = "unknown";
@@ -266,8 +267,7 @@ void add_coverage_to_json(const goto_tracet &goto_trace, const namespacet &ns)
   // Collect referenced files
   for (const auto &step : goto_trace.steps)
   {
-    if (
-      step.pc != goto_programt::const_targett() && !step.pc->location.is_nil())
+    if (step.pc != goto_programt::const_targett() && !step.pc->location.is_nil())
     {
       const locationt &loc = step.pc->location;
       std::string file = id2string(loc.get_file());
@@ -276,8 +276,7 @@ void add_coverage_to_json(const goto_tracet &goto_trace, const namespacet &ns)
       {
         all_referenced_files.insert(file);
         auto included_headers = find_included_headers(file, processed_files);
-        all_referenced_files.insert(
-          included_headers.begin(), included_headers.end());
+        all_referenced_files.insert(included_headers.begin(), included_headers.end());
       }
     }
   }
@@ -285,8 +284,7 @@ void add_coverage_to_json(const goto_tracet &goto_trace, const namespacet &ns)
   // Process steps
   for (const auto &step : goto_trace.steps)
   {
-    if (
-      step.pc != goto_programt::const_targett() && !step.pc->location.is_nil())
+    if (step.pc != goto_programt::const_targett() && !step.pc->location.is_nil())
     {
       const locationt &loc = step.pc->location;
       std::string file = id2string(loc.get_file());
@@ -318,8 +316,7 @@ void add_coverage_to_json(const goto_tracet &goto_trace, const namespacet &ns)
               violations.insert({file, line});
               found_violation = true;
               step_data["type"] = "violation";
-              step_data["message"] =
-                step.comment.empty() ? "Assertion check" : step.comment;
+              step_data["message"] = step.comment.empty() ? "Assertion check" : step.comment;
               test_entry["status"] = "violation";
               step_data["assertion"] = {
                 {"violated", true},
@@ -341,12 +338,9 @@ void add_coverage_to_json(const goto_tracet &goto_trace, const namespacet &ns)
             step_data["type"] = "assignment";
             std::string var_name = from_expr(ns, "", step.lhs);
 
-            step_data["assignment"] =
-              get_assignment_json(ns, step.lhs, step.value);
+            step_data["assignment"] = get_assignment_json(ns, step.lhs, step.value);
 
-            if (
-              !initial_state_captured &&
-              processed_vars.find(var_name) == processed_vars.end())
+            if (!initial_state_captured && processed_vars.find(var_name) == processed_vars.end())
             {
               processed_vars.insert(var_name);
               json value_info = {
@@ -431,25 +425,20 @@ void add_coverage_to_json(const goto_tracet &goto_trace, const namespacet &ns)
     test_entry["coverage"]["files"][file] = file_coverage;
   }
 
-  // Read existing JSON and append new test
-  json all_tests = []() {
-    // TODO: Allow diff filename for report
+  // Initialize all_tests as an array and read existing data if present
+  json all_tests = json::array();
+  try {
     std::ifstream input("report.json");
-    if (input.is_open())
-    {
-      try
-      {
-        json existing;
-        input >> existing;
-        return existing;
-      }
-      catch (json::parse_error &e)
-      {
-        log_error("Error parsing existing report.json: {}", e.what());
+    if(input.is_open()) {
+      input >> all_tests;
+      if(!all_tests.is_array()) {
+        all_tests = json::array();
       }
     }
-    return json::array();
-  }();
+  } catch(...) {
+    // Any error reading existing file, start fresh with empty array
+    all_tests = json::array();
+  }
 
   // Handle source files for first entry
   if (all_tests.empty())
@@ -473,6 +462,7 @@ void add_coverage_to_json(const goto_tracet &goto_trace, const namespacet &ns)
     test_entry["source_files"] = source_data;
   }
 
+  // Add new test entry to array
   all_tests.push_back(test_entry);
 
   // Write updated JSON
@@ -484,6 +474,7 @@ void add_coverage_to_json(const goto_tracet &goto_trace, const namespacet &ns)
   }
   json_out << std::setw(2) << all_tests << std::endl;
 }
+
 } // anonymous namespace
 
 void generate_json_report(
